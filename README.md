@@ -214,12 +214,6 @@ GitHub Actions 会在以下场景自动构建：
 make package/luci-app-ztc1control/compile V=s
 ```
 
-## 与原项目的关系
-
-本仓库是原 Docker/Python 版局域网控制服务的 OpenWrt 移植版本。原始项目
-（`app.py`、Web 管理页面与 HTTP API）仍保留在
-[dqsq2e2/zTC1](https://github.com/dqsq2e2/zTC1)，本仓库只包含 OpenWrt 插件。
-
 ## 许可证
 
 [MIT](LICENSE)
