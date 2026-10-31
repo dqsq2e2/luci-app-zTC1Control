@@ -20,7 +20,9 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 - 设备激活码填写
 - 倒计时开关任务（由路由器本地调度）
 - 设备原生定时任务（每个插口 5 组，保存在排插内，重启不丢失）
-- 服务设置页面：启用/禁用、监听端口、命令端口、广播地址、绑定接口、扫描间隔
+- 内置外部 HTTP API（可配置端口与 API Key，见 [API.md](API.md)）
+- 服务设置页面：启用/禁用、监听端口、命令端口、广播地址、绑定接口、扫描间隔、
+  API 端口与 API Key
 - LuCI 原生界面，入口位于 **Control → zTC1**（`/cgi-bin/luci/admin/control/ztc1control`）
 
 ## 支持环境
@@ -31,7 +33,7 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 | 软件包格式 | `ipk`（opkg）与 `apk` 均已适配 |
 | LuCI | JS 版 LuCI（`luci-base`） |
 | 架构 | 任意架构（`all` / `noarch`） |
-| 依赖 | `ucode`、`ucode-mod-fs`、`ucode-mod-socket`、`ucode-mod-uloop`、`ucode-mod-uci`、`rpcd-mod-ucode`、`jsonfilter`、`luci-base` |
+| 依赖 | `ucode`、`ucode-mod-fs`、`ucode-mod-socket`、`ucode-mod-uloop`、`ucode-mod-uci`、`rpcd-mod-ucode`、`jsonfilter`、`uhttpd`、`luci-base` |
 
 依赖由软件包自动安装，无需手动处理。
 
@@ -124,7 +126,7 @@ config ztc1control 'main'
 	option scan_interval '60'    # 自动扫描间隔（秒），0 表示关闭自动扫描
 ```
 
-配置也可以直接在同页面的「服务设置」中修改，点击「保存并应用」后服务会自动重启。
+配置也可以直接在同页面的「设置」标签页中修改，点击「保存并应用」后服务会自动重启。
 
 ### 命令行
 
@@ -147,6 +149,19 @@ ztc1ctl countdown <mac> <插口> <秒数> <动作>
 ztc1ctl plug 001122334455 2 0
 ```
 
+### 外部 HTTP API
+
+插件同时提供一个独立的 HTTP API（默认端口 `8090`），供脚本、Home Assistant、
+Node-RED 等外部程序调用：
+
+```sh
+KEY=$(uci get ztc1control.main.api_key)
+curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8090/api/devices
+```
+
+端口和 API Key 可在「设置」页面修改；Key 留空时服务启动会自动生成。接口、
+参数和更多示例见 [API.md](API.md)。
+
 ## 实现说明
 
 ```text
@@ -158,6 +173,7 @@ luci-app-ztc1control/
 ├── root/usr/bin/ztc1ctl                             # 命令行封装
 ├── root/usr/share/ztc1/ztc1d.uc                     # UDP 后台守护进程（ucode）
 ├── root/usr/share/ztc1/ztc1ctl.uc                   # 命令实现（ucode）
+├── root/usr/share/ztc1/www/api                      # HTTP API（uhttpd CGI）
 ├── root/usr/share/rpcd/ucode/luci.ztc1control       # rpcd 后端（ubus 对象）
 ├── root/usr/share/luci/menu.d/                      # 菜单（Control → zTC1）
 ├── root/usr/share/rpcd/acl.d/                       # 权限

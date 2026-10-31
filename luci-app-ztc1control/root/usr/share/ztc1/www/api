@@ -1,0 +1,593 @@
+#!/usr/bin/ucode
+/*
+ * HTTP API for luci-app-ztc1control (uhttpd CGI).
+ *
+ * All requests must provide the configured API key via the X-API-Key
+ * header or "Authorization: Bearer <key>".
+ */
+
+'use strict';
+
+import { readfile, lsdir, unlink, popen } from 'fs';
+import { cursor } from 'uci';
+
+const VERSION = '1.0.0';
+const STATE_FILE = '/var/run/ztc1/state.json';
+const COUNTDOWN_DIR = '/var/run/ztc1/countdown';
+const CTL = '/usr/bin/ztc1ctl';
+
+function reason(code) {
+	switch (code) {
+	case 200: return 'OK';
+	case 400: return 'Bad Request';
+	case 401: return 'Unauthorized';
+	case 404: return 'Not Found';
+	case 405: return 'Method Not Allowed';
+	case 500: return 'Internal Server Error';
+	case 502: return 'Bad Gateway';
+	case 503: return 'Service Unavailable';
+	}
+
+	return 'OK';
+}
+
+function respond(status, payload) {
+	printf('Status: %d %s\r\n', status, reason(status));
+	printf('Content-Type: application/json; charset=utf-8\r\n');
+	printf('Cache-Control: no-store\r\n');
+	printf('Connection: close\r\n');
+	printf('\r\n');
+	printf('%s\n', sprintf('%J', payload));
+	exit(0);
+}
+
+function to_num(value) {
+	if (type(value) == 'int')
+		return value;
+
+	if (type(value) == 'double')
+		return int(value);
+
+	if (type(value) == 'bool')
+		return value ? 1 : 0;
+
+	if (type(value) == 'string' && match(value, /^-?[0-9]+$/))
+		return int(value);
+
+	return null;
+}
+
+function norm_mac(value) {
+	let str = lc(sprintf('%s', value ?? ''));
+	let out = '';
+
+	for (let i = 0; i < length(str); i++) {
+		let ch = substr(str, i, 1);
+
+		if (match(ch, /[0-9a-f]/))
+			out += ch;
+	}
+
+	return out;
+}
+
+function utf8_chars(value) {
+	let str = sprintf('%s', value ?? '');
+	let count = 0;
+
+	for (let i = 0; i < length(str); i++)
+		if ((ord(str, i) & 0xc0) != 0x80)
+			count++;
+
+	return count;
+}
+
+function shellquote(value) {
+	return "'" + replace(sprintf('%s', value), /'/g, "'\\''") + "'";
+}
+
+function uci_get(option, fallback) {
+	let ctx = null;
+
+	try {
+		ctx = cursor();
+		let value = ctx.get('ztc1control', 'main', option);
+
+		return (value != null) ? sprintf('%s', value) : fallback;
+	}
+	catch (e) {
+		return fallback;
+	}
+}
+
+function run_ctl(...args) {
+	let cmd = CTL;
+	let result = { ok: false, code: -1, output: '' };
+
+	for (let i = 0; i < length(args); i++)
+		cmd += ' ' + shellquote(args[i]);
+
+	let fd = popen(cmd + ' 2>&1', 'r');
+
+	if (fd == null) {
+		result.error = 'unable to execute ztc1ctl';
+		return result;
+	}
+
+	result.output = trim(fd.read('all') ?? '');
+	result.code = fd.close();
+	result.ok = (result.code === 0);
+
+	if (length(result.output)) {
+		try {
+			let parsed = json(result.output);
+
+			if (type(parsed) == 'object') {
+				result.detail = parsed;
+
+				if (parsed.error != null)
+					result.error = sprintf('%s', parsed.error);
+			}
+		}
+		catch (e) {
+			/* keep raw output */
+		}
+	}
+
+	return result;
+}
+
+function read_state() {
+	let raw = null;
+
+	try {
+		raw = readfile(STATE_FILE);
+	}
+	catch (e) {
+		raw = null;
+	}
+
+	if (type(raw) == 'string' && length(raw)) {
+		try {
+			let state = json(raw);
+
+			if (type(state) == 'object')
+				return state;
+		}
+		catch (e) {
+			return { updated: 0, devices: [] };
+		}
+	}
+
+	return { updated: 0, devices: [] };
+}
+
+function public_devices() {
+	let state = read_state();
+	let raw = (type(state.devices) == 'array') ? state.devices : [];
+	let now = time();
+	let list = [];
+
+	for (let i = 0; i < length(raw); i++) {
+		let dev = raw[i];
+
+		if (type(dev) != 'object')
+			continue;
+
+		let last_seen = to_num(dev.last_seen) ?? 0;
+
+		dev.online = (last_seen > 0 && now - last_seen < 120);
+		dev.plug_count = (type(dev.plugs) == 'array') ? length(dev.plugs) : 0;
+
+		push(list, dev);
+	}
+
+	return list;
+}
+
+function find_device(mac) {
+	let list = public_devices();
+
+	for (let i = 0; i < length(list); i++)
+		if (list[i].mac == mac)
+			return list[i];
+
+	return null;
+}
+
+function list_countdowns() {
+	let files = null;
+	let now = time();
+	let list = [];
+
+	try {
+		files = lsdir(COUNTDOWN_DIR);
+	}
+	catch (e) {
+		files = null;
+	}
+
+	if (type(files) != 'array')
+		return list;
+
+	for (let i = 0; i < length(files); i++) {
+		let name = files[i];
+
+		if (!match(name, /\.json$/))
+			continue;
+
+		let job = null;
+
+		try {
+			job = json(readfile(COUNTDOWN_DIR + '/' + name));
+		}
+		catch (e) {
+			job = null;
+		}
+
+		if (type(job) != 'object')
+			continue;
+
+		let due = to_num(job.due);
+
+		if (due == null)
+			continue;
+
+		job.id = name;
+		job.remain = due - now;
+
+		push(list, job);
+	}
+
+	return list;
+}
+
+function request_body() {
+	let raw_len = getenv('CONTENT_LENGTH');
+	let length_hdr = (raw_len != null && match(raw_len, /^[0-9]+$/)) ? int(raw_len) : 0;
+
+	if (length_hdr <= 0)
+		return '';
+
+	let raw = null;
+
+	try {
+		raw = readfile('/dev/stdin');
+	}
+	catch (e) {
+		raw = null;
+	}
+
+	if (type(raw) != 'string')
+		return '';
+
+	if (length(raw) > length_hdr)
+		raw = substr(raw, 0, length_hdr);
+
+	return raw;
+}
+
+function json_body() {
+	let raw = request_body();
+
+	if (!length(raw))
+		return {};
+
+	let body = null;
+
+	try {
+		body = json(raw);
+	}
+	catch (e) {
+		respond(400, { ok: false, error: 'invalid JSON body' });
+	}
+
+	if (type(body) != 'object')
+		respond(400, { ok: false, error: 'JSON body must be an object' });
+
+	return body;
+}
+
+function int_arg(body, name, minimum, maximum, fallback) {
+	let value = body[name];
+
+	if (value == null)
+		return fallback;
+
+	let number = to_num(value);
+
+	if (number == null || number < minimum || number > maximum)
+		respond(400, { ok: false, error: 'invalid ' + name });
+
+	return number;
+}
+
+function save_names(mac, name, plugs) {
+	let ctx = cursor();
+	let config = ctx.get_all('ztc1control') ?? {};
+	let section = null;
+
+	for (let sid in config) {
+		let sec = config[sid];
+
+		if (type(sec) == 'object' && sec['.type'] == 'device' && norm_mac(sec.mac ?? '') == mac) {
+			section = sid;
+			break;
+		}
+	}
+
+	if (section == null)
+		section = ctx.add('ztc1control', 'device');
+
+	if (section == null)
+		return false;
+
+	ctx.set('ztc1control', section, 'mac', mac);
+	ctx.set('ztc1control', section, 'name', name);
+
+	for (let i = 0; i < 6; i++)
+		ctx.set('ztc1control', section, 'plug_' + (i + 1),
+			(type(plugs) == 'array' && i < length(plugs)) ? sprintf('%s', plugs[i] ?? '') : '');
+
+	return ctx.commit('ztc1control') != null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Authentication                                                     */
+/* ------------------------------------------------------------------ */
+
+let expected_key = uci_get('api_key', '');
+
+if (!length(expected_key))
+	respond(503, {
+		ok: false,
+		error: 'API key is not configured, set api_key in /etc/config/ztc1control or restart the service'
+	});
+
+let provided_key = getenv('HTTP_X_API_KEY');
+let authorization = getenv('HTTP_AUTHORIZATION') ?? '';
+
+if (!length(provided_key ?? '') && match(authorization, /^Bearer [A-Za-z0-9._-]+$/))
+	provided_key = substr(authorization, 7);
+
+if (sprintf('%s', provided_key ?? '') != expected_key)
+	respond(401, { ok: false, error: 'unauthorized: invalid or missing API key' });
+
+/* ------------------------------------------------------------------ */
+/* Routing                                                            */
+/* ------------------------------------------------------------------ */
+
+let method = getenv('REQUEST_METHOD') ?? 'GET';
+let pathinfo = getenv('PATH_INFO') ?? '/';
+let parts = [];
+let segments = split(pathinfo, '/');
+
+for (let i = 0; i < length(segments); i++)
+	if (length(segments[i]))
+		push(parts, segments[i]);
+
+let resource = parts[0] ?? '';
+let mac = (resource == 'devices') ? norm_mac(parts[1] ?? '') : '';
+let action = (resource == 'devices') ? (parts[2] ?? '') : '';
+
+if (resource == 'info' && method == 'GET') {
+	let state = read_state();
+
+	respond(200, {
+		ok: true,
+		name: 'luci-app-ztc1control',
+		version: VERSION,
+		api_port: to_num(uci_get('api_port', '8090')),
+		listen_port: to_num(uci_get('listen_port', '10181')),
+		command_port: to_num(uci_get('command_port', '10182')),
+		updated: to_num(state.updated) ?? 0,
+		device_count: length(public_devices())
+	});
+}
+
+if (resource == 'scan' && method == 'POST') {
+	let result = run_ctl('scan');
+
+	respond(result.ok ? 200 : 502, {
+		ok: result.ok,
+		error: result.error,
+		output: result.output
+	});
+}
+
+if (resource == 'countdowns') {
+	if (method == 'GET' && !length(mac)) {
+		respond(200, { ok: true, countdowns: list_countdowns() });
+	}
+
+	if (method == 'DELETE' && length(parts[1])) {
+		let id = parts[1];
+
+		if (!match(id, /^[0-9A-Za-z_.-]+$/) || !match(id, /\.json$/))
+			respond(400, { ok: false, error: 'invalid countdown id' });
+
+		let removed = null;
+
+		try {
+			removed = unlink(COUNTDOWN_DIR + '/' + id);
+		}
+		catch (e) {
+			removed = null;
+		}
+
+		if (removed == null)
+			respond(404, { ok: false, error: 'countdown not found' });
+
+		respond(200, { ok: true, id: id });
+	}
+
+	respond(405, { ok: false, error: 'method not allowed' });
+}
+
+if (resource == 'devices') {
+	if (method == 'GET' && !length(mac)) {
+		let state = read_state();
+
+		respond(200, {
+			ok: true,
+			updated: to_num(state.updated) ?? 0,
+			devices: public_devices()
+		});
+	}
+
+	if (length(mac) != 12)
+		respond(400, { ok: false, error: 'invalid MAC address' });
+
+	if (method == 'GET' && length(mac) && !length(action)) {
+		let dev = find_device(mac);
+
+		if (dev == null)
+			respond(404, { ok: false, error: 'device not found' });
+
+		respond(200, { ok: true, device: dev });
+	}
+
+	if (method == 'POST' && action == 'query') {
+		let result = run_ctl('query', mac);
+
+		respond(result.ok ? 200 : 502, { ok: result.ok, error: result.error });
+	}
+
+	if (method == 'POST' && action == 'control') {
+		let body = json_body();
+		let results = [];
+		let success = true;
+		let handled = false;
+
+		for (let i = 0; i < 6; i++) {
+			let plug = body['plug_' + i];
+
+			if (type(plug) != 'object' || plug.on == null)
+				continue;
+
+			let on = to_num(plug.on);
+
+			if (on == null || (on != 0 && on != 1))
+				respond(400, { ok: false, error: 'invalid state for plug_' + i });
+
+			let result = run_ctl('plug', mac, sprintf('%d', i), (on == 1) ? '1' : '0');
+
+			push(results, result);
+			success = success && result.ok;
+			handled = true;
+		}
+
+		if (body.child_lock != null || body.led_lock != null) {
+			let dev = find_device(mac);
+			let dev_child = (type(dev) == 'object') ? to_num(dev.child_lock) : null;
+			let dev_led = (type(dev) == 'object') ? to_num(dev.led_lock) : null;
+			let child = (body.child_lock != null) ? to_num(body.child_lock) : (dev_child ?? 0);
+			let led = (body.led_lock != null) ? to_num(body.led_lock) : (dev_led ?? 0);
+
+			if (child == null || led == null)
+				respond(400, { ok: false, error: 'invalid lock state' });
+
+			let result = run_ctl('locks', mac, (child == 1) ? '1' : '0', (led == 1) ? '1' : '0');
+
+			push(results, result);
+			success = success && result.ok;
+			handled = true;
+		}
+
+		if (body.lock != null) {
+			let code = sprintf('%s', body.lock);
+
+			if (!length(code) || length(code) > 64)
+				respond(400, { ok: false, error: 'invalid activation code' });
+
+			let result = run_ctl('activate', mac, code);
+
+			push(results, result);
+			success = success && result.ok;
+			handled = true;
+		}
+
+		if (!handled)
+			respond(400, { ok: false, error: 'no supported control fields' });
+
+		respond(success ? 200 : 502, { ok: success, mac: mac, results: results });
+	}
+
+	if (method == 'POST' && action == 'rename') {
+		let body = json_body();
+		let name = sprintf('%s', body.name ?? '');
+		let plugs = (type(body.plugs) == 'array') ? body.plugs : [];
+		let args = [ 'rename', mac, name ];
+
+		if (length(name) > 32)
+			respond(400, { ok: false, error: 'device name exceeds 32 bytes' });
+
+		for (let i = 0; i < 6; i++) {
+			let plug_name = (i < length(plugs)) ? sprintf('%s', plugs[i] ?? '') : '';
+
+			if (utf8_chars(plug_name) > 16)
+				respond(400, { ok: false, error: 'plug name exceeds 16 characters' });
+
+			push(args, plug_name);
+		}
+
+		if (!save_names(mac, name, plugs))
+			respond(500, { ok: false, error: 'unable to save configuration' });
+
+		let result = run_ctl(...args);
+		let sent = (type(result.detail) == 'object') ? (to_num(result.detail.sent) ?? 0) : 0;
+
+		respond(result.ok ? 200 : 502, {
+			ok: result.ok,
+			mac: mac,
+			sent: sent,
+			error: result.error
+		});
+	}
+
+	if (method == 'POST' && action == 'countdown') {
+		let body = json_body();
+		let plug = int_arg(body, 'plug', 0, 5, null);
+		let seconds = int_arg(body, 'seconds', 1, 604800, null);
+		let countdown_action = int_arg(body, 'action', 0, 1, 0);
+
+		if (plug == null || seconds == null)
+			respond(400, { ok: false, error: 'plug and seconds are required' });
+
+		let result = run_ctl('countdown', mac, sprintf('%d', plug),
+			sprintf('%d', seconds), sprintf('%d', countdown_action));
+
+		respond(result.ok ? 200 : 502, {
+			ok: result.ok,
+			error: result.error,
+			id: (type(result.detail) == 'object') ? (result.detail.id ?? null) : null,
+			due: (type(result.detail) == 'object') ? (result.detail.due ?? null) : null
+		});
+	}
+
+	if (method == 'POST' && action == 'timer') {
+		let body = json_body();
+		let plug = int_arg(body, 'plug', 0, 5, null);
+		let task = int_arg(body, 'task', 0, 4, 0);
+		let hour = int_arg(body, 'hour', 0, 23, null);
+		let minute = int_arg(body, 'minute', 0, 59, null);
+		let repeat = int_arg(body, 'repeat', 0, 127, 127);
+		let timer_action = int_arg(body, 'action', 0, 1, 1);
+		let enable = int_arg(body, 'enable', 0, 1, 1);
+
+		if (plug == null || hour == null || minute == null)
+			respond(400, { ok: false, error: 'plug, hour and minute are required' });
+
+		let result = run_ctl('timer', mac,
+			sprintf('%d', plug), sprintf('%d', task),
+			sprintf('%d', hour), sprintf('%d', minute),
+			sprintf('%d', repeat), sprintf('%d', timer_action),
+			sprintf('%d', enable));
+
+		respond(result.ok ? 200 : 502, { ok: result.ok, error: result.error });
+	}
+
+	respond(405, { ok: false, error: 'method not allowed' });
+}
+
+respond(404, { ok: false, error: 'not found' });

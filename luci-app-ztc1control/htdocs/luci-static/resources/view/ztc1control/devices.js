@@ -210,11 +210,6 @@ return view.extend({
 				'class': 'btn cbi-button',
 				'click': function() { return view.refresh(true); }
 			}, [ '刷新状态' ]),
-			' ',
-			E('a', {
-				'class': 'btn cbi-button',
-				'href': L.url('admin/control/ztc1control/settings')
-			}, [ '服务设置' ]),
 			E('span', {
 				'id': 'ztc1-service',
 				'style': 'margin-left:1em;color:#777'

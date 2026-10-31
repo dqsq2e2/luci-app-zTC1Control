@@ -7,13 +7,20 @@ return view.extend({
 	render: function() {
 		var m, s, o;
 
+		var back = E('div', { 'class': 'cbi-section', 'style': 'margin-bottom:1em' }, [
+			E('a', {
+				'class': 'btn cbi-button',
+				'href': L.url('admin/control/ztc1control')
+			}, [ '← 返回设备控制' ])
+		]);
+
 		m = new form.Map('ztc1control', 'zTC1 服务设置',
-			'配置 zTC1 智能排插的局域网 UDP 服务。修改后点击“保存并应用”以重启服务。');
+			'配置 zTC1 智能排插的局域网 UDP 服务与外部 HTTP API。修改后点击“保存并应用”以重启服务。');
 
 		s = m.section(form.NamedSection, 'main', 'ztc1control');
 		s.anonymous = true;
 
-		o = s.option(form.Flag, 'enabled', '启用服务',
+		o = s.option(form.Flag, 'enabled', '启用设备服务',
 			'关闭后不再监听 UDP 端口，也不会自动扫描设备。');
 		o.default = '1';
 		o.rmempty = false;
@@ -64,6 +71,22 @@ return view.extend({
 		o.default = '60';
 		o.rmempty = false;
 
-		return m.render();
+		o = s.option(form.Flag, 'api_enabled', '启用外部 API',
+			'在指定端口启动 HTTP API 服务，供脚本、Home Assistant 等外部程序调用。');
+		o.default = '1';
+		o.rmempty = false;
+
+		o = s.option(form.Value, 'api_port', 'API 端口',
+			'HTTP API 监听端口，默认 8090。所有接口都需要 API Key。');
+		o.datatype = 'port';
+		o.default = '8090';
+		o.rmempty = false;
+
+		o = s.option(form.Value, 'api_key', 'API Key',
+			'调用 API 时通过 Authorization: Bearer 请求头传递。留空时服务启动会自动生成。');
+		o.rmempty = true;
+		o.placeholder = '留空自动生成';
+
+		return E('div', {}, [ back, m.render() ]);
 	}
 });

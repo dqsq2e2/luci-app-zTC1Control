@@ -12,7 +12,7 @@ PKG_LICENSE:=MIT
 LUCI_TITLE:=LuCI support for zTC1 smart power strips
 LUCI_DESCRIPTION:=Discover and control zTC1 Wi-Fi power strips over the local network (UDP 10182/10181).
 LUCI_DEPENDS:=+luci-base +ucode +ucode-mod-fs +ucode-mod-socket +ucode-mod-uloop \
-	+ucode-mod-uci +rpcd-mod-ucode +jsonfilter
+	+ucode-mod-uci +rpcd-mod-ucode +jsonfilter +uhttpd
 LUCI_PKGARCH:=all
 LUCI_MAINTAINER:=dqsq2e2
 LUCI_URL:=https://github.com/dqsq2e2/luci-app-ztc1Control
