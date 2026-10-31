@@ -157,6 +157,15 @@ function textInput(value, extra) {
 	return input;
 }
 
+function utf8Bytes(value) {
+	var str = String(value == null ? '' : value);
+
+	if (typeof TextEncoder !== 'undefined')
+		return new TextEncoder().encode(str).length;
+
+	return unescape(encodeURIComponent(str)).length;
+}
+
 function plugOptions(device) {
 	var options = [];
 
@@ -500,25 +509,44 @@ return view.extend({
 	handleRename: function(device) {
 		var nameInput = textInput(device.name || device.device_name || '');
 		var plugInputs = [];
-		var body = [ field('设备名称', nameInput) ];
+		var body = [
+			E('p', { 'class': 'cbi-section-descr' }, [
+				'名称会同时写入排插，每个名称最多 32 字节（约 10 个汉字）；留空则只保存在路由器本地。'
+			]),
+			field('设备名称', nameInput)
+		];
 
 		for (var i = 0; i < 6; i++) {
 			var plug = (device.plugs && device.plugs[i]) || {};
 			var input = textInput(plug.name || '');
 
+			input.setAttribute('maxlength', '32');
 			plugInputs.push(input);
 			body.push(field('插口 ' + (i + 1) + ' 名称', input));
 		}
 
 		this.openModal('重命名设备', body, function() {
 			var names = [];
+			var allNames = [ nameInput.value ];
 
-			for (var j = 0; j < plugInputs.length; j++)
+			for (var j = 0; j < plugInputs.length; j++) {
 				names.push(plugInputs[j].value);
+				allNames.push(plugInputs[j].value);
+			}
+
+			for (var k = 0; k < allNames.length; k++) {
+				if (utf8Bytes(allNames[k]) > 32) {
+					throw new Error('名称“' + allNames[k] + '”超过 32 字节，请缩短后再保存');
+				}
+			}
 
 			return callRename(device.mac, nameInput.value, names).then(function(result) {
 				ensureOk(result, '保存失败');
-				notify('名称已保存');
+
+				if (result.sent === true)
+					notify('名称已保存并发送到排插');
+				else
+					notify('名称已保存到本地，但发送到排插失败');
 			});
 		});
 	},

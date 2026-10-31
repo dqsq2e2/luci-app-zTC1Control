@@ -15,7 +15,7 @@ import { cursor } from 'uci';
 const STATE_FILE = '/var/run/ztc1/state.json';
 const COUNTDOWN_DIR = '/var/run/ztc1/countdown';
 const CTL = '/usr/bin/ztc1ctl';
-const MAX_NAME_LENGTH = 96;
+const MAX_NAME_BYTES = 32;
 
 function to_num(value) {
 	if (type(value) == 'int')
@@ -62,9 +62,6 @@ function sanitize_name(value) {
 	}
 
 	out = trim(out);
-
-	if (length(out) > MAX_NAME_LENGTH)
-		out = substr(out, 0, MAX_NAME_LENGTH);
 
 	return out;
 }
@@ -320,6 +317,24 @@ function rename_device(mac, name, plugs) {
 	if (length(mac) != 12)
 		return { ok: false, error: 'invalid MAC address' };
 
+	let device_name = sanitize_name(name);
+	let plug_names = [];
+
+	if (length(device_name) > MAX_NAME_BYTES)
+		return { ok: false, error: '设备名称不能超过 32 个字节' };
+
+	for (let i = 0; i < 6; i++) {
+		let plug_name = '';
+
+		if (type(plugs) == 'array' && i < length(plugs))
+			plug_name = sanitize_name(plugs[i]);
+
+		if (length(plug_name) > MAX_NAME_BYTES)
+			return { ok: false, error: '插口名称不能超过 32 个字节' };
+
+		push(plug_names, plug_name);
+	}
+
 	let ctx = cursor();
 	let section = null;
 	let config = ctx.get_all('ztc1control') ?? {};
@@ -340,23 +355,29 @@ function rename_device(mac, name, plugs) {
 		return { ok: false, error: 'unable to create device section' };
 
 	ctx.set('ztc1control', section, 'mac', mac);
-	ctx.set('ztc1control', section, 'name', sanitize_name(name));
+	ctx.set('ztc1control', section, 'name', device_name);
 
-	for (let i = 0; i < 6; i++) {
-		let plug_name = '';
-
-		if (type(plugs) == 'array' && i < length(plugs))
-			plug_name = sanitize_name(plugs[i]);
-
-		ctx.set('ztc1control', section, 'plug_' + (i + 1), plug_name);
-	}
+	for (let i = 0; i < 6; i++)
+		ctx.set('ztc1control', section, 'plug_' + (i + 1), plug_names[i]);
 
 	let committed = ctx.commit('ztc1control');
 
 	if (committed == null || committed === false)
 		return { ok: false, error: 'unable to save configuration' };
 
-	return { ok: true, section: section };
+	/* Names are also written into the power strip itself when possible. */
+	let remote = run_ctl('rename', mac, device_name,
+		plug_names[0], plug_names[1], plug_names[2],
+		plug_names[3], plug_names[4], plug_names[5]);
+
+	return {
+		ok: true,
+		section: section,
+		sent: (remote.ok === true),
+		message: (remote.ok === true)
+			? '名称已保存并发送到排插'
+			: '名称已保存到本地，但发送到排插失败'
+	};
 }
 
 const methods = {

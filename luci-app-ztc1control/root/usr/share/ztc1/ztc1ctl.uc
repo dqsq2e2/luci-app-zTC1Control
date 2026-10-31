@@ -301,6 +301,48 @@ if (action == 'activate') {
 	exit(0);
 }
 
+if (action == 'rename') {
+	mac = require_mac(args[1]);
+
+	let device_name = sprintf('%s', args[2] ?? '');
+	let payload = { mac: mac };
+	let sent = false;
+
+	if (length(device_name) > 32) {
+		emit({ ok: false, error: 'device name exceeds 32 bytes' });
+		exit(1);
+	}
+
+	if (length(device_name)) {
+		payload.setting = { name: device_name };
+		sent = true;
+	}
+
+	for (let i = 0; i < 6; i++) {
+		let plug_name = sprintf('%s', args[3 + i] ?? '');
+
+		if (length(plug_name) > 32) {
+			emit({ ok: false, error: 'plug name exceeds 32 bytes' });
+			exit(1);
+		}
+
+		if (length(plug_name)) {
+			payload['plug_' + i] = { setting: { name: plug_name } };
+			sent = true;
+		}
+	}
+
+	if (!sent) {
+		emit({ ok: true, sent: false });
+		exit(0);
+	}
+
+	let address = send_command(payload, mac);
+
+	emit({ ok: true, sent: true, address: address });
+	exit(0);
+}
+
 if (action == 'timer') {
 	mac = require_mac(args[1]);
 
