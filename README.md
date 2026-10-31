@@ -6,8 +6,6 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 `10181`），不依赖 Python、Docker、MQTT 或任何云服务。整个软件包为纯脚本实现，
 `PKGARCH:=all`，与 CPU 架构无关。
 
-> 仓库名为 `luci-app-zTC1Control`；OpenWrt 软件包名为 `luci-app-ztc1control`（包名按惯例使用小写）。
-
 > 协议参考：
 > [a2633063/zTC1 通信协议](https://github.com/a2633063/zTC1/wiki/%E9%80%9A%E4%BF%A1%E5%8D%8F%E8%AE%AE) ·
 > [SmartControl_Android_MQTT](https://github.com/a2633063/SmartControl_Android_MQTT)
@@ -19,7 +17,7 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 - 显示功率、累计运行时间、固件版本、IP、SSID、在线状态
 - 设备与插口重命名（同时写入排插固件，并在 UCI 中保存本地映射）
 - 童锁、夜间模式（关闭 LED）
-- 设备激活码填写
+- 显示设备激活状态（在线标签旁），支持填写设备激活码
 - 倒计时开关任务（由路由器本地调度）
 - 设备原生定时任务（每个插口 5 组，保存在排插内，重启不丢失）
 - 内置外部 HTTP API（默认关闭，可在「设置」中启用；端口与 API Key 可配置，见 [API.md](API.md)）
@@ -206,8 +204,8 @@ GitHub Actions 会在以下场景自动构建：
 
 | 目标 | SDK 镜像 | 产物 |
 | --- | --- | --- |
-| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.2-r1_all.ipk` |
-| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.2-r1.apk`（`noarch`） |
+| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.2-r2_all.ipk` |
+| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.2-r2.apk`（`noarch`） |
 
 由于软件包为 `all` 架构，任一架构构建出的包均可安装到所有目标设备。
 

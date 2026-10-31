@@ -300,7 +300,8 @@ if (action == 'query') {
 		total_time: null,
 		version: null,
 		child_lock: null,
-		led_lock: null
+		led_lock: null,
+		lock: null
 	};
 
 	for (let i = 0; i < 6; i++)

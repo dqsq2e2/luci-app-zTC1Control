@@ -158,10 +158,14 @@ function update_device(msg, source_ip) {
 	if (msg.led_lock != null)
 		dev.led_lock = (to_num(msg.led_lock) == 1) ? 1 : 0;
 
-	if (msg.lock === true || to_num(msg.lock) == 1)
-		dev.lock_state = true;
-	else if (msg.lock === false)
-		dev.lock_state = false;
+	if (msg.lock != null) {
+		let lock = lc(sprintf('%s', msg.lock));
+
+		if (lock == 'true' || lock == '1')
+			dev.lock_state = true;
+		else if (lock == 'false' || lock == '0')
+			dev.lock_state = false;
+	}
 
 	for (let i = 0; i < 6; i++) {
 		let src = msg['plug_' + i];
@@ -329,7 +333,8 @@ function handle_report(data, source_ip) {
 			total_time: null,
 			version: null,
 			child_lock: null,
-			led_lock: null
+			led_lock: null,
+			lock: null
 		};
 
 		for (let i = 0; i < 6; i++)

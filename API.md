@@ -123,6 +123,7 @@ curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8091/api/devices
 - `power`：当前功率（字符串，单位 W）
 - `total_time`：累计运行时间（分钟）
 - `online`：最近 120 秒内是否收到过设备上报
+- `lock_state`：是否已激活（`true` / `false`）
 - `plugs[].on`：`1` 开、`0` 关、`-1` 未知
 
 ### 开关插口与童锁

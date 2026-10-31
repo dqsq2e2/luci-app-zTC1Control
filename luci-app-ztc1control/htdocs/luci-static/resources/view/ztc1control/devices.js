@@ -467,9 +467,12 @@ return view.extend({
 				: 'background:#f2dede;color:#a94442;padding:2px 8px;border-radius:10px;font-size:12px'
 		}, [ device.online ? '在线' : '离线' ]);
 
-		if (device.lock_state === true) {
-			meta.push('已激活');
-		}
+		var lockBadge = E('span', {
+			'class': 'label',
+			'style': (device.lock_state === true)
+				? 'background:#e3f0ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:4px'
+				: 'background:#fff4e5;color:#b45309;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:4px'
+		}, [ (device.lock_state === true) ? '已激活' : '未激活' ]);
 
 		var rows = [];
 
@@ -494,7 +497,7 @@ return view.extend({
 		]);
 
 		return E('div', { 'class': 'cbi-section', 'style': 'margin-bottom:1.2em' }, [
-			E('h3', {}, [ name, ' ', stateBadge ]),
+			E('h3', {}, [ name, ' ', stateBadge, ' ', lockBadge ]),
 			E('div', { 'class': 'cbi-section-descr' }, [
 				meta.join(' · '),
 				E('br', {}),
