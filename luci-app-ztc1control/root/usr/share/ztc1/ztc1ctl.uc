@@ -47,6 +47,49 @@ function is_ipv4(value) {
 	return true;
 }
 
+function utf8_chars(value) {
+	let str = sprintf('%s', value ?? '');
+	let count = 0;
+
+	for (let i = 0; i < length(str); i++)
+		if ((ord(str, i) & 0xc0) != 0x80)
+			count++;
+
+	return count;
+}
+
+function state_device_name(mac) {
+	let raw = null;
+	let state = null;
+
+	try {
+		raw = fs.readfile(STATE_FILE);
+	}
+	catch (e) {
+		raw = null;
+	}
+
+	if (type(raw) == 'string' && length(raw)) {
+		try {
+			state = json(raw);
+		}
+		catch (e) {
+			state = null;
+		}
+	}
+
+	if (type(state) == 'object' && type(state.devices) == 'array') {
+		for (let i = 0; i < length(state.devices); i++) {
+			let dev = state.devices[i];
+
+			if (type(dev) == 'object' && dev.mac == mac && type(dev.device_name) == 'string')
+				return dev.device_name;
+		}
+	}
+
+	return '';
+}
+
 function valid_mac(value) {
 	let str = lc(sprintf('%s', value ?? ''));
 	let out = '';
@@ -261,7 +304,7 @@ if (action == 'query') {
 	};
 
 	for (let i = 0; i < 6; i++)
-		payload['plug_' + i] = { on: null };
+		payload['plug_' + i] = { on: null, setting: { name: null } };
 
 	let address = send_command(payload, mac);
 
@@ -305,41 +348,50 @@ if (action == 'rename') {
 	mac = require_mac(args[1]);
 
 	let device_name = sprintf('%s', args[2] ?? '');
-	let payload = { mac: mac };
-	let sent = false;
+	let plug_names = [];
+	let sent = 0;
 
 	if (length(device_name) > 32) {
 		emit({ ok: false, error: 'device name exceeds 32 bytes' });
 		exit(1);
 	}
 
-	if (length(device_name)) {
-		payload.setting = { name: device_name };
-		sent = true;
-	}
-
 	for (let i = 0; i < 6; i++) {
 		let plug_name = sprintf('%s', args[3 + i] ?? '');
 
-		if (length(plug_name) > 32) {
-			emit({ ok: false, error: 'plug name exceeds 32 bytes' });
+		if (length(plug_name) && utf8_chars(plug_name) > 16) {
+			emit({ ok: false, error: 'plug name exceeds 16 characters' });
 			exit(1);
 		}
 
-		if (length(plug_name)) {
-			payload['plug_' + i] = { setting: { name: plug_name } };
-			sent = true;
-		}
+		push(plug_names, plug_name);
 	}
 
-	if (!sent) {
-		emit({ ok: true, sent: false });
-		exit(0);
+	/* Effective device name: the new one when set, otherwise the last known one. */
+	let current_name = length(device_name) ? device_name : state_device_name(mac);
+
+	if (length(device_name)) {
+		let address = send_command({ mac: mac, setting: { name: device_name } }, mac);
+
+		sent++;
 	}
 
-	let address = send_command(payload, mac);
+	for (let i = 0; i < 6; i++) {
+		if (!length(plug_names[i]))
+			continue;
 
-	emit({ ok: true, sent: true, address: address });
+		let payload = { mac: mac };
+
+		if (length(current_name))
+			payload.name = current_name;
+
+		payload['plug_' + i] = { setting: { name: plug_names[i] } };
+
+		send_command(payload, mac);
+		sent++;
+	}
+
+	emit({ ok: true, sent: sent });
 	exit(0);
 }
 

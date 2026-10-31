@@ -126,6 +126,8 @@ function update_device(msg, source_ip) {
 
 	if (type(msg.name) == 'string' && length(msg.name))
 		dev.device_name = msg.name;
+	else if (type(msg.setting) == 'object' && type(msg.setting.name) == 'string' && length(msg.setting.name))
+		dev.device_name = msg.setting.name;
 
 	if (to_num(msg.type) != null)
 		dev.type = to_num(msg.type);
@@ -176,6 +178,9 @@ function update_device(msg, source_ip) {
 			plug.name = src.name;
 
 		if (type(src.setting) == 'object') {
+			if (type(src.setting.name) == 'string' && length(src.setting.name))
+				plug.name = src.setting.name;
+
 			for (let t = 0; t < 5; t++) {
 				let task = src.setting['task_' + t];
 
@@ -328,7 +333,7 @@ function handle_report(data, source_ip) {
 		};
 
 		for (let i = 0; i < 6; i++)
-			query['plug_' + i] = { on: null };
+			query['plug_' + i] = { on: null, setting: { name: null } };
 
 		send_to(query, target);
 	}

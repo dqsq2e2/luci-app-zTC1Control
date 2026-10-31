@@ -16,6 +16,18 @@ const STATE_FILE = '/var/run/ztc1/state.json';
 const COUNTDOWN_DIR = '/var/run/ztc1/countdown';
 const CTL = '/usr/bin/ztc1ctl';
 const MAX_NAME_BYTES = 32;
+const MAX_PLUG_NAME_CHARS = 16;
+
+function utf8_chars(value) {
+	let str = sprintf('%s', value ?? '');
+	let count = 0;
+
+	for (let i = 0; i < length(str); i++)
+		if ((ord(str, i) & 0xc0) != 0x80)
+			count++;
+
+	return count;
+}
 
 function to_num(value) {
 	if (type(value) == 'int')
@@ -154,8 +166,12 @@ function run_ctl(...args) {
 		try {
 			let parsed = json(result.output);
 
-			if (type(parsed) == 'object' && parsed.error != null)
-				result.error = sprintf('%s', parsed.error);
+			if (type(parsed) == 'object') {
+				result.data = parsed;
+
+				if (parsed.error != null)
+					result.error = sprintf('%s', parsed.error);
+			}
 		}
 		catch (e) {
 			/* not JSON, keep raw output */
@@ -236,6 +252,18 @@ function status() {
 
 		let override = names[mac] ?? { name: '', plugs: [] };
 		let last_seen = to_num(dev.last_seen) ?? 0;
+		let online = (last_seen > 0 && now - last_seen < 120);
+		let device_name = '';
+
+		/* While the strip is online its reported names are authoritative,
+		 * the UCI copy is a fallback for offline devices. */
+		if (online && type(dev.device_name) == 'string' && length(dev.device_name))
+			device_name = dev.device_name;
+		else if (type(override.name) == 'string' && length(override.name))
+			device_name = override.name;
+		else if (type(dev.device_name) == 'string')
+			device_name = dev.device_name;
+
 		let plugs = [];
 
 		for (let j = 0; j < 6; j++) {
@@ -244,9 +272,13 @@ function status() {
 			if (type(dev.plugs) == 'array' && j < length(dev.plugs))
 				plug = dev.plugs[j];
 
-			let plug_name = override.plugs[j] ?? '';
+			let plug_name = '';
 
-			if (!length(plug_name) && type(plug) == 'object' && type(plug.name) == 'string')
+			if (online && type(plug) == 'object' && type(plug.name) == 'string' && length(plug.name))
+				plug_name = plug.name;
+			else if (type(override.plugs[j]) == 'string' && length(override.plugs[j]))
+				plug_name = override.plugs[j];
+			else if (type(plug) == 'object' && type(plug.name) == 'string')
 				plug_name = plug.name;
 
 			let entry = {
@@ -272,7 +304,7 @@ function status() {
 
 		push(devices, {
 			mac: mac,
-			name: override.name ?? '',
+			name: device_name,
 			device_name: dev.device_name ?? '',
 			ip: dev.ip ?? '',
 			ssid: dev.ssid ?? '',
@@ -329,8 +361,8 @@ function rename_device(mac, name, plugs) {
 		if (type(plugs) == 'array' && i < length(plugs))
 			plug_name = sanitize_name(plugs[i]);
 
-		if (length(plug_name) > MAX_NAME_BYTES)
-			return { ok: false, error: '插口名称不能超过 32 个字节' };
+		if (length(plug_name) && utf8_chars(plug_name) > MAX_PLUG_NAME_CHARS)
+			return { ok: false, error: '插口名称不能超过 16 个字符' };
 
 		push(plug_names, plug_name);
 	}
@@ -370,13 +402,18 @@ function rename_device(mac, name, plugs) {
 		plug_names[0], plug_names[1], plug_names[2],
 		plug_names[3], plug_names[4], plug_names[5]);
 
+	let sent = 0;
+
+	if (remote.ok === true && type(remote.data) == 'object')
+		sent = to_num(remote.data.sent) ?? 0;
+
 	return {
 		ok: true,
 		section: section,
-		sent: (remote.ok === true),
-		message: (remote.ok === true)
+		sent: sent,
+		message: (sent > 0)
 			? '名称已保存并发送到排插'
-			: '名称已保存到本地，但发送到排插失败'
+			: '名称已保存到本地，发送到排插失败'
 	};
 }
 

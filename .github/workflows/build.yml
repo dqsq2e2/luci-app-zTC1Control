@@ -30,10 +30,6 @@ jobs:
             arch: x86_64-openwrt-25.12
             artifacts: |
               bin/packages/**/*.apk
-          - name: OpenWrt snapshot (apk)
-            arch: x86_64-SNAPSHOT
-            artifacts: |
-              bin/packages/**/*.apk
 
     steps:
       - name: Checkout
@@ -64,7 +60,7 @@ jobs:
 
   release:
     name: Release
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
     needs: build
     runs-on: ubuntu-latest
 
@@ -80,8 +76,44 @@ jobs:
           find dist -type f \( -name '*.ipk' -o -name '*.apk' \) -exec cp -v {} release/ \;
           ls -l release
 
-      - name: Create GitHub release
+      - name: Determine release tag
+        id: meta
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "${REF_TYPE}" = "tag" ]; then
+            echo "tag=${REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "name=${REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "name=Latest build" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create / update GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          body: |
+            zTC1 smart power strip controller for OpenWrt / LuCI.
+
+            - `luci-app-ztc1control_*_all.ipk` — OpenWrt 24.10 (opkg)
+            - `luci-app-ztc1control-*.apk` — OpenWrt 25.12 (apk)
+
+            Commit: ${{ github.sha }}
+
+            Install:
+            ```sh
+            opkg install luci-app-ztc1control_*_all.ipk
+            # or
+            apk add --allow-untrusted luci-app-ztc1control-*.apk
+            /etc/init.d/ztc1control enable
+            /etc/init.d/ztc1control start
+            ```
           files: release/*
-          generate_release_notes: true
+          overwrite_files: true

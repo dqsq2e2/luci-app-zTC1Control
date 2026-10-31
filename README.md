@@ -104,10 +104,10 @@ cp -r luci-app-ztc1Control/luci-app-ztc1control /path/to/openwrt/package/
 4. 使用每路插口右侧的按钮开关；使用设备下方的按钮进行重命名、激活、童锁、
    倒计时和定时任务设置。
 
-> 重命名会把新名称通过 UDP 写入排插（设备名称和每个插口名称最多 32 个 UTF-8
-> 字节，约 10 个汉字），同时保存到 `/etc/config/ztc1control` 作为本地映射。排插
-> 离线时命令无法送达，本地名称仍然保留；名称留空时只保存到本地，不会改动排插
-> 中的名称。
+> 重命名会把新名称通过 UDP 写入排插：设备名称最多 32 个 UTF-8 字节（约 10 个
+> 汉字），插口名称最多 16 个字符；同时保存到 `/etc/config/ztc1control` 作为本地
+> 映射。设备在线时以排插上报的名称为准，本地映射只用于离线显示或发送失败时的
+> 回退。名称留空时只保存到本地，不会改动排插中的名称。
 
 ## 配置
 
@@ -172,12 +172,14 @@ luci-app-ztc1control/
 - 广播地址默认根据 `lan` 接口的地址与掩码自动计算，避免多网口路由器把广播发到
   WAN 口。
 
-## 自动编译
+## 自动编译与发布
 
 GitHub Actions 会在以下场景自动构建：
 
-- push 到 `main` / Pull Request：构建并上传 `ipk`、`apk` 产物（Actions Artifacts）
-- 推送 `v*` 标签：构建并创建 GitHub Release，附带所有软件包
+- push 到 `main`：构建 `ipk`、`apk`，上传 Actions Artifacts，并创建/更新
+  `latest` Release（便于直接下载安装）
+- Pull Request：仅构建并上传 Artifacts
+- 推送 `v*` 标签：构建并创建对应版本号的 GitHub Release
 
 构建矩阵：
 
@@ -185,7 +187,6 @@ GitHub Actions 会在以下场景自动构建：
 | --- | --- | --- |
 | OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_*_all.ipk` |
 | OpenWrt 25.12 | `x86_64-openwrt-25.12` | `.apk`（`noarch`） |
-| OpenWrt snapshot | `x86_64-SNAPSHOT` | `.apk`（`noarch`） |
 
 由于软件包为 `all` 架构，任一架构构建出的包均可安装到所有目标设备。
 
