@@ -463,24 +463,24 @@ return view.extend({
 		var stateBadge = E('span', {
 			'class': 'label',
 			'style': device.online
-				? 'background:#d9f2e6;color:#176b48;padding:2px 8px;border-radius:10px;font-size:12px'
-				: 'background:#f2dede;color:#a94442;padding:2px 8px;border-radius:10px;font-size:12px'
+				? 'background:#d9f2e6 !important;color:#176b48 !important;padding:2px 8px;border-radius:10px;font-size:12px'
+				: 'background:#f2dede !important;color:#a94442 !important;padding:2px 8px;border-radius:10px;font-size:12px'
 		}, [ device.online ? '在线' : '离线' ]);
 
 		var lockBadge = E('span', {
 			'class': 'label',
 			'style': (device.lock_state === true)
-				? 'background:#e3f0ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:4px'
-				: 'background:#fff4e5;color:#b45309;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:4px'
+				? 'background:#dbeafe !important;color:#1d4ed8 !important;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:4px'
+				: 'background:#fff4e5 !important;color:#b45309 !important;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:4px'
 		}, [ (device.lock_state === true) ? '已激活' : '未激活' ]);
 
 		var rows = [];
 
 		rows.push(E('tr', { 'class': 'tr table-titles' }, [
-			E('th', { 'class': 'th', 'style': 'width:4em' }, [ '#' ]),
-			E('th', { 'class': 'th' }, [ '名称' ]),
-			E('th', { 'class': 'th', 'style': 'width:5em' }, [ '状态' ]),
-			E('th', { 'class': 'th', 'style': 'width:6em' }, [ '操作' ])
+			E('th', { 'class': 'th', 'style': 'width:5em;text-align:center;white-space:nowrap' }, [ '#' ]),
+			E('th', { 'class': 'th', 'style': 'width:auto' }, [ '名称' ]),
+			E('th', { 'class': 'th', 'style': 'width:7em;text-align:center;white-space:nowrap' }, [ '状态' ]),
+			E('th', { 'class': 'th', 'style': 'width:7em;text-align:center;white-space:nowrap' }, [ '操作' ])
 		]));
 
 		for (var i = 0; i < 6; i++) {
@@ -503,7 +503,10 @@ return view.extend({
 				E('br', {}),
 				'功率 ' + (device.power || '0') + ' W · 运行 ' + formatDuration(device.total_time)
 			]),
-			E('table', { 'class': 'table' }, rows),
+			E('table', {
+				'class': 'table',
+				'style': 'table-layout:fixed;width:100%;max-width:52em'
+			}, rows),
 			actions
 		]);
 	},
@@ -517,10 +520,14 @@ return view.extend({
 		var buttonClass = isOn ? 'cbi-button-reset' : 'cbi-button-apply';
 
 		return E('tr', { 'class': 'tr' }, [
-			E('td', { 'class': 'td' }, [ 'P' + (index + 1) ]),
-			E('td', { 'class': 'td' }, [ plug.name || ('插口 ' + (index + 1)) ]),
-			E('td', { 'class': 'td' }, [ label ]),
-			E('td', { 'class': 'td' }, [
+			E('td', { 'class': 'td', 'style': 'text-align:center;white-space:nowrap' }, [ 'P' + (index + 1) ]),
+			E('td', {
+				'class': 'td',
+				'style': 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+				'title': plug.name || ('插口 ' + (index + 1))
+			}, [ plug.name || ('插口 ' + (index + 1)) ]),
+			E('td', { 'class': 'td', 'style': 'text-align:center;white-space:nowrap' }, [ label ]),
+			E('td', { 'class': 'td', 'style': 'text-align:center;white-space:nowrap' }, [
 				E('button', {
 					'class': 'btn cbi-button ' + buttonClass,
 					'click': function() { return view.handleToggle(device, index, state); }
