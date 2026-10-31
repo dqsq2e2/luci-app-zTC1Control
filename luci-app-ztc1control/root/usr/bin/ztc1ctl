@@ -1,0 +1,26 @@
+#!/bin/sh
+# Command line helper for luci-app-ztc1control.
+#
+# Usage: ztc1ctl scan
+#        ztc1ctl plug <mac> <0-5> <0|1>
+#        ztc1ctl query <mac>
+#        ztc1ctl locks <mac> <0|1> <0|1>
+#        ztc1ctl activate <mac> <code>
+#        ztc1ctl timer <mac> <plug> <task> <hour> <minute> <repeat> <action> <enable>
+#        ztc1ctl countdown <mac> <plug> <seconds> <action>
+
+. /usr/share/ztc1/common.sh
+
+ztc1_load_config
+
+broadcast="$(ztc1_resolve_broadcast "$ZTC1_BROADCAST")"
+[ -n "$broadcast" ] || broadcast=255.255.255.255
+
+ZTC1_BROADCAST="$broadcast"
+export ZTC1_BROADCAST
+export ZTC1_COMMAND_PORT="$ZTC1_COMMAND_PORT"
+export ZTC1_STATE_FILE="$ZTC1_STATE_FILE"
+export ZTC1_COUNTDOWN_DIR="$ZTC1_COUNTDOWN_DIR"
+export ZTC1_PID=$$
+
+exec /usr/bin/ucode /usr/share/ztc1/ztc1ctl.uc "$@"

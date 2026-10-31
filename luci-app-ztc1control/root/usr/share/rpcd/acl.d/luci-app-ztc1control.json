@@ -1,0 +1,20 @@
+{
+	"luci-app-ztc1control": {
+		"description": "Grant access to the zTC1 smart power strip controller",
+		"read": {
+			"ubus": {
+				"luci.ztc1control": [ "status" ]
+			},
+			"uci": [ "ztc1control" ]
+		},
+		"write": {
+			"ubus": {
+				"luci.ztc1control": [
+					"scan", "query", "plug", "locks", "activate", "timer",
+					"countdown", "cancel_countdown", "rename"
+				]
+			},
+			"uci": [ "ztc1control" ]
+		}
+	}
+}

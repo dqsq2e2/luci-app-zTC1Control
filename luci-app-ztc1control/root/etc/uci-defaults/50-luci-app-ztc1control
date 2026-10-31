@@ -1,0 +1,9 @@
+#!/bin/sh
+# Enable the zTC1 daemon on first boot when the package is baked into an image.
+
+[ -x /etc/init.d/ztc1control ] || exit 0
+
+/etc/init.d/ztc1control enable
+/etc/init.d/ztc1control start
+
+exit 0

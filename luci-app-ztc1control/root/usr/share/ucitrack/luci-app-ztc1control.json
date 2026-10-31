@@ -1,0 +1,4 @@
+{
+	"config": "ztc1control",
+	"init": [ "ztc1control" ]
+}

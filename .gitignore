@@ -1,0 +1,14 @@
+# Build artifacts
+/bin/
+/build_dir/
+/staging_dir/
+/tmp/
+/logs/
+*.ipk
+*.apk
+*.tar.zst
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+*.swp

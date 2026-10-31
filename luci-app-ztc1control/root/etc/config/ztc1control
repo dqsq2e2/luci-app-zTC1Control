@@ -1,0 +1,7 @@
+config ztc1control 'main'
+	option enabled '1'
+	option listen_port '10181'
+	option command_port '10182'
+	option broadcast 'auto'
+	option bind_interface 'auto'
+	option scan_interval '60'
