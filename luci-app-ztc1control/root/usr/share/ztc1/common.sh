@@ -13,7 +13,7 @@ ZTC1_COMMAND_PORT=10182
 ZTC1_BROADCAST=auto
 ZTC1_BIND_IFACE=auto
 ZTC1_SCAN_INTERVAL=60
-ZTC1_API_ENABLED=1
+ZTC1_API_ENABLED=0
 ZTC1_API_PORT=8091
 ZTC1_API_KEY=""
 
@@ -155,7 +155,7 @@ ztc1_load_config() {
 	config_get ZTC1_BROADCAST main broadcast auto
 	config_get ZTC1_BIND_IFACE main bind_interface auto
 	config_get ZTC1_SCAN_INTERVAL main scan_interval 60
-	config_get_bool ZTC1_API_ENABLED main api_enabled 1
+	config_get_bool ZTC1_API_ENABLED main api_enabled 0
 	config_get ZTC1_API_PORT main api_port 8091
 	config_get ZTC1_API_KEY main api_key ''
 

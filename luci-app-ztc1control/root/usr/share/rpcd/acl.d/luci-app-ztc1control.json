@@ -3,7 +3,7 @@
 		"description": "Grant access to the zTC1 smart power strip controller",
 		"read": {
 			"ubus": {
-				"luci.ztc1control": [ "status" ]
+				"luci.ztc1control": [ "status", "check_api_port" ]
 			},
 			"uci": [ "ztc1control" ]
 		},

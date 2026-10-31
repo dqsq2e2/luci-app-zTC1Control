@@ -5,17 +5,17 @@
 
 ## 启用与配置
 
-在 LuCI 的 **Control → zTC1 → Settings** 页面中配置，或直接修改
+API 默认关闭。在 LuCI 的 **Control → zTC1** 页面点击「设置」，勾选「启用外部 API」后保存；也可以直接修改
 `/etc/config/ztc1control`：
 
 ```uci
 config ztc1control 'main'
-	option api_enabled '1'   # 是否启用 HTTP API
+	option api_enabled '0'   # 是否启用 HTTP API，默认关闭
 	option api_port '8091'   # API 监听端口
 	option api_key ''        # 为空时服务启动会自动生成 32 位十六进制 key
 ```
 
-修改后点击“保存并应用”，服务会自动重启。
+修改后点击“保存并应用”，服务会自动重启。保存时会检查 API 端口是否被占用；冲突会提示并阻止保存。
 
 查看当前 key：
 

@@ -45,6 +45,13 @@ var callActivate = rpc.declare({
 	expect: { '': {} }
 });
 
+var callCheckApiPort = rpc.declare({
+	object: 'luci.ztc1control',
+	method: 'check_api_port',
+	params: [ 'port' ],
+	expect: { '': {} }
+});
+
 var callTimer = rpc.declare({
 	object: 'luci.ztc1control',
 	method: 'timer',
@@ -210,6 +217,36 @@ function hideDevicesFooter(hide) {
 }
 
 return view.extend({
+	handleSave: function(ev) {
+		var self = this;
+
+		if (!settingsRequested())
+			return view.prototype.handleSave.call(self, ev);
+
+		var enabled = document.querySelector('[data-field="cbid.ztc1control.main.api_enabled"] input[type="checkbox"]');
+		var portField = document.querySelector('[data-field="cbid.ztc1control.main.api_port"] input');
+
+		if (!enabled || !enabled.checked || !portField)
+			return view.prototype.handleSave.call(self, ev);
+
+		var port = Number(portField.value || 0);
+
+		if (!port || port < 1 || port > 65535) {
+			ui.addNotification(null, E('p', {}, [ 'API 端口无效，请填写 1-65535 之间的端口' ]), 'error');
+			return Promise.reject(new Error('invalid API port'));
+		}
+
+		return callCheckApiPort(port).then(function(result) {
+			if (!result || result.free !== true)
+				throw new Error('API 端口 ' + port + ' 已被占用，请换一个端口后再保存');
+
+			return view.prototype.handleSave.call(self, ev);
+		}).catch(function(err) {
+			ui.addNotification(null, E('p', {}, [ err.message ]), 'error');
+			throw err;
+		});
+	},
+
 	load: function() {
 		if (settingsRequested())
 			return {};
@@ -280,8 +317,8 @@ return view.extend({
 		o.rmempty = false;
 
 		o = s.option(form.Flag, 'api_enabled', '启用外部 API',
-			'在指定端口启动 HTTP API 服务，供脚本、Home Assistant 等外部程序调用。');
-		o.default = '1';
+			'在指定端口启动 HTTP API 服务，供脚本、Home Assistant 等外部程序调用。默认关闭。');
+		o.default = '0';
 		o.rmempty = false;
 
 		o = s.option(form.Value, 'api_port', 'API 端口',

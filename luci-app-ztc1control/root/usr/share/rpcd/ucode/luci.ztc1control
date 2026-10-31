@@ -11,6 +11,7 @@
 import { readfile, lsdir, unlink, access } from 'fs';
 import { popen } from 'fs';
 import { cursor } from 'uci';
+import * as socket from 'socket';
 
 const STATE_FILE = '/var/run/ztc1/state.json';
 const COUNTDOWN_DIR = '/var/run/ztc1/countdown';
@@ -417,10 +418,61 @@ function rename_device(mac, name, plugs) {
 	};
 }
 
+function probe_api_port(port) {
+	let ctx = cursor();
+	let enabled = false;
+	let current = 8091;
+
+	try {
+		enabled = (ctx.get('ztc1control', 'main', 'api_enabled') == '1');
+		current = to_num(ctx.get('ztc1control', 'main', 'api_port')) ?? 8091;
+	}
+	catch (e) {
+		enabled = false;
+	}
+
+	/* Saving other settings while our own API is running on this port. */
+	if (enabled && current == port)
+		return { ok: true, free: true, port: port, current: true };
+
+	let sock = socket.create(socket.AF_INET, socket.SOCK_STREAM, 0);
+	let bound = false;
+
+	if (sock != null) {
+		try {
+			bound = sock.bind('0.0.0.0', port);
+		}
+		catch (e) {
+			bound = false;
+		}
+
+		try {
+			sock.close();
+		}
+		catch (e) {
+			/* ignore */
+		}
+	}
+
+	return { ok: true, free: (bound === true), port: port };
+}
+
 const methods = {
 	status: {
 		call: function() {
 			return status();
+		}
+	},
+
+	check_api_port: {
+		args: { port: 8091 },
+		call: function(request) {
+			let port = to_num(request.args.port);
+
+			if (port == null || port < 1 || port > 65535)
+				return { ok: false, error: 'invalid port' };
+
+			return probe_api_port(port);
 		}
 	},
 
