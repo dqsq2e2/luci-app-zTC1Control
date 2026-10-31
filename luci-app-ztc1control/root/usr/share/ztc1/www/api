@@ -11,7 +11,7 @@
 import { readfile, lsdir, unlink, popen } from 'fs';
 import { cursor } from 'uci';
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const STATE_FILE = '/var/run/ztc1/state.json';
 const COUNTDOWN_DIR = '/var/run/ztc1/countdown';
 const CTL = '/usr/bin/ztc1ctl';

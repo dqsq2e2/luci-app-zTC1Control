@@ -1,4 +1,4 @@
-# luci-app-ztc1Control
+# luci-app-zTC1Control
 
 zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 
@@ -41,7 +41,7 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 
 ### 方式一：安装预编译软件包
 
-从 [Releases](https://github.com/dqsq2e2/luci-app-ztc1Control/releases) 直接下载对应格式的
+从 [Releases](https://github.com/dqsq2e2/luci-app-zTC1Control/releases) 直接下载对应格式的
 可安装软件包（Release 中就是原始的 `.ipk` / `.apk` 文件，不是压缩包）：
 
 ```sh
@@ -67,7 +67,7 @@ apk add --allow-untrusted luci-app-ztc1control-*.apk
 
 ```sh
 cd openwrt
-echo "src-git ztc1control https://github.com/dqsq2e2/luci-app-ztc1Control.git" >> feeds.conf.default
+echo "src-git ztc1control https://github.com/dqsq2e2/luci-app-zTC1Control.git" >> feeds.conf.default
 ./scripts/feeds update ztc1control
 ./scripts/feeds install -a -p ztc1control
 ```
@@ -76,7 +76,7 @@ echo "src-git ztc1control https://github.com/dqsq2e2/luci-app-ztc1Control.git" >
 
 ```sh
 cd openwrt
-echo "src-link ztc1control /path/to/luci-app-ztc1Control" >> feeds.conf.default
+echo "src-link ztc1control /path/to/luci-app-zTC1Control" >> feeds.conf.default
 ./scripts/feeds update ztc1control
 ./scripts/feeds install -a -p ztc1control
 ```
@@ -94,7 +94,7 @@ LuCI
 ### 方式三：直接复制到 buildroot
 
 ```sh
-cp -r luci-app-ztc1Control/luci-app-ztc1control /path/to/openwrt/package/
+cp -r luci-app-zTC1Control/luci-app-ztc1control /path/to/openwrt/package/
 ```
 
 之后同样在 `menuconfig` 中选中即可。
@@ -204,8 +204,8 @@ GitHub Actions 会在以下场景自动构建：
 
 | 目标 | SDK 镜像 | 产物 |
 | --- | --- | --- |
-| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.1-r1_all.ipk` |
-| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.1-r1.apk`（`noarch`） |
+| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.2-r1_all.ipk` |
+| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.2-r1.apk`（`noarch`） |
 
 由于软件包为 `all` 架构，任一架构构建出的包均可安装到所有目标设备。
 

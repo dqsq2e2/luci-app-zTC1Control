@@ -78,7 +78,7 @@ curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8091/api/info
 {
   "ok": true,
   "name": "luci-app-ztc1control",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "api_port": 8091,
   "listen_port": 10181,
   "command_port": 10182,

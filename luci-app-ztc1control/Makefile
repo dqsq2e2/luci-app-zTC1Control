@@ -5,7 +5,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-ztc1control
-PKG_VERSION:=1.0.1
+PKG_VERSION:=1.0.2
 PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 
@@ -15,7 +15,7 @@ LUCI_DEPENDS:=+luci-base +ucode +ucode-mod-fs +ucode-mod-socket +ucode-mod-uloop
 	+ucode-mod-uci +rpcd-mod-ucode +jsonfilter +uhttpd
 LUCI_PKGARCH:=all
 LUCI_MAINTAINER:=dqsq2e2
-LUCI_URL:=https://github.com/dqsq2e2/luci-app-ztc1Control
+LUCI_URL:=https://github.com/dqsq2e2/luci-app-zTC1Control
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/ztc1control
