@@ -347,7 +347,7 @@ if (!length(expected_key))
 let provided_key = getenv('HTTP_X_API_KEY');
 let authorization = getenv('HTTP_AUTHORIZATION') ?? '';
 
-if (!length(provided_key ?? '') && match(authorization, /^Bearer [A-Za-z0-9._-]+$/))
+if (!length(provided_key ?? '') && match(authorization, /^Bearer /))
 	provided_key = substr(authorization, 7);
 
 if (sprintf('%s', provided_key ?? '') != expected_key)
