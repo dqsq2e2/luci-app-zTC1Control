@@ -25,11 +25,11 @@ jobs:
           - name: OpenWrt 24.10 (ipk)
             arch: x86_64-openwrt-24.10
             artifacts: |
-              bin/packages/**/*.ipk
+              bin/packages/**/luci-app-ztc1control*.ipk
           - name: OpenWrt 25.12 (apk)
             arch: x86_64-openwrt-25.12
             artifacts: |
-              bin/packages/**/*.apk
+              bin/packages/**/luci-app-ztc1control*.apk
 
     steps:
       - name: Checkout
@@ -73,7 +73,8 @@ jobs:
       - name: Collect packages
         run: |
           mkdir -p release
-          find dist -type f \( -name '*.ipk' -o -name '*.apk' \) -exec cp -v {} release/ \;
+          find dist -type f \( -name 'luci-app-ztc1control*.ipk' -o -name 'luci-app-ztc1control*.apk' \) -exec cp -v {} release/ \;
+          test "$(find release -maxdepth 1 -type f | wc -l)" -eq 2
           ls -l release
 
       - name: Determine release tag
@@ -92,6 +93,13 @@ jobs:
             echo "name=Latest build" >> "$GITHUB_OUTPUT"
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Remove previous rolling release
+        if: steps.meta.outputs.tag == 'latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -R "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
 
       - name: Create / update GitHub release
         uses: softprops/action-gh-release@v2

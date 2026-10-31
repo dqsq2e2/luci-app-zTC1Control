@@ -27,7 +27,7 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 
 | 项目 | 要求 |
 | --- | --- |
-| OpenWrt | 24.10 / 25.12 / snapshot（含 ImmortalWrt 等衍生版本） |
+| OpenWrt | 24.10 / 25.12（含 ImmortalWrt 等衍生版本） |
 | 软件包格式 | `ipk`（opkg）与 `apk` 均已适配 |
 | LuCI | JS 版 LuCI（`luci-base`） |
 | 架构 | 任意架构（`all` / `noarch`） |
@@ -39,13 +39,14 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 
 ### 方式一：安装预编译软件包
 
-从 [Releases](https://github.com/dqsq2e2/luci-app-ztc1Control/releases) 下载对应格式的软件包：
+从 [Releases](https://github.com/dqsq2e2/luci-app-ztc1Control/releases) 直接下载对应格式的
+可安装软件包（Release 中就是原始的 `.ipk` / `.apk` 文件，不是压缩包）：
 
 ```sh
 # OpenWrt 24.10（opkg）
 opkg install luci-app-ztc1control_*_all.ipk
 
-# OpenWrt 25.12 / snapshot（apk）
+# OpenWrt 25.12（apk）
 apk add --allow-untrusted luci-app-ztc1control-*.apk
 ```
 
@@ -177,7 +178,8 @@ luci-app-ztc1control/
 GitHub Actions 会在以下场景自动构建：
 
 - push 到 `main`：构建 `ipk`、`apk`，上传 Actions Artifacts，并创建/更新
-  `latest` Release（便于直接下载安装）
+  `latest` Release；Release 中只包含两个可直接安装的包：`all` 架构的 `.ipk`
+  与 `noarch` 的 `.apk`
 - Pull Request：仅构建并上传 Artifacts
 - 推送 `v*` 标签：构建并创建对应版本号的 GitHub Release
 
@@ -185,8 +187,8 @@ GitHub Actions 会在以下场景自动构建：
 
 | 目标 | SDK 镜像 | 产物 |
 | --- | --- | --- |
-| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_*_all.ipk` |
-| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `.apk`（`noarch`） |
+| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.0-r1_all.ipk` |
+| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.0-r1.apk`（`noarch`） |
 
 由于软件包为 `all` 架构，任一架构构建出的包均可安装到所有目标设备。
 
