@@ -6,6 +6,8 @@ zTC1 智能排插的 OpenWrt / LuCI 控制插件。
 `10181`），不依赖 Python、Docker、MQTT 或任何云服务。整个软件包为纯脚本实现，
 `PKGARCH:=all`，与 CPU 架构无关。
 
+> 仓库名为 `luci-app-zTC1Control`；OpenWrt 软件包名为 `luci-app-ztc1control`（包名按惯例使用小写）。
+
 > 协议参考：
 > [a2633063/zTC1 通信协议](https://github.com/a2633063/zTC1/wiki/%E9%80%9A%E4%BF%A1%E5%8D%8F%E8%AE%AE) ·
 > [SmartControl_Android_MQTT](https://github.com/a2633063/SmartControl_Android_MQTT)
