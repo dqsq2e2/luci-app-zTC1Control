@@ -11,7 +11,7 @@
 ```uci
 config ztc1control 'main'
 	option api_enabled '1'   # 是否启用 HTTP API
-	option api_port '8090'   # API 监听端口
+	option api_port '8091'   # API 监听端口
 	option api_key ''        # 为空时服务启动会自动生成 32 位十六进制 key
 ```
 
@@ -23,7 +23,7 @@ config ztc1control 'main'
 uci get ztc1control.main.api_key
 ```
 
-> API 默认监听 `0.0.0.0:8090`，请只在局域网内使用；不要在没有防火墙保护的情况下
+> API 默认监听 `0.0.0.0:8091`，请只在局域网内使用；不要在没有防火墙保护的情况下
 > 把该端口暴露到公网。所有接口都必须携带 API Key。
 
 ## 认证
@@ -43,7 +43,7 @@ Authorization: Bearer <api_key>
 http://<路由器地址>:<api_port>/api
 ```
 
-例如 `http://192.168.1.1:8090/api`。
+例如 `http://192.168.1.1:8091/api`。
 
 所有响应都是 UTF-8 JSON，成功时包含 `"ok": true`，失败时包含
 `"ok": false` 和 `"error"` 字段。
@@ -71,15 +71,15 @@ http://<路由器地址>:<api_port>/api
 ### 服务信息
 
 ```sh
-curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8090/api/info
+curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8091/api/info
 ```
 
 ```json
 {
   "ok": true,
   "name": "luci-app-ztc1control",
-  "version": "1.0.0",
-  "api_port": 8090,
+  "version": "1.0.1",
+  "api_port": 8091,
   "listen_port": 10181,
   "command_port": 10182,
   "updated": 1700000000,
@@ -90,7 +90,7 @@ curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8090/api/info
 ### 设备列表
 
 ```sh
-curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8090/api/devices
+curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8091/api/devices
 ```
 
 ```json
@@ -128,7 +128,7 @@ curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8090/api/devices
 ### 开关插口与童锁
 
 ```sh
-curl -X POST http://192.168.1.1:8090/api/devices/001122334455/control \
+curl -X POST http://192.168.1.1:8091/api/devices/001122334455/control \
   -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -157,7 +157,7 @@ curl -X POST http://192.168.1.1:8090/api/devices/001122334455/control \
 ### 重命名
 
 ```sh
-curl -X POST http://192.168.1.1:8090/api/devices/001122334455/rename \
+curl -X POST http://192.168.1.1:8091/api/devices/001122334455/rename \
   -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -174,7 +174,7 @@ curl -X POST http://192.168.1.1:8090/api/devices/001122334455/rename \
 ### 倒计时
 
 ```sh
-curl -X POST http://192.168.1.1:8090/api/devices/001122334455/countdown \
+curl -X POST http://192.168.1.1:8091/api/devices/001122334455/countdown \
   -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" \
   -d '{ "plug": 0, "seconds": 600, "action": 1 }'
@@ -186,7 +186,7 @@ curl -X POST http://192.168.1.1:8090/api/devices/001122334455/countdown \
 ### 原生定时任务
 
 ```sh
-curl -X POST http://192.168.1.1:8090/api/devices/001122334455/timer \
+curl -X POST http://192.168.1.1:8091/api/devices/001122334455/timer \
   -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -208,9 +208,9 @@ curl -X POST http://192.168.1.1:8090/api/devices/001122334455/timer \
 ### 倒计时列表与取消
 
 ```sh
-curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8090/api/countdowns
+curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8091/api/countdowns
 curl -X DELETE -H "Authorization: Bearer $KEY" \
-  http://192.168.1.1:8090/api/countdowns/1700000123-job.json
+  http://192.168.1.1:8091/api/countdowns/1700000123-job.json
 ```
 
 ## 错误码

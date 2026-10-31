@@ -151,12 +151,12 @@ ztc1ctl plug 001122334455 2 0
 
 ### 外部 HTTP API
 
-插件同时提供一个独立的 HTTP API（默认端口 `8090`），供脚本、Home Assistant、
+插件同时提供一个独立的 HTTP API（默认端口 `8091`），供脚本、Home Assistant、
 Node-RED 等外部程序调用：
 
 ```sh
 KEY=$(uci get ztc1control.main.api_key)
-curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8090/api/devices
+curl -H "Authorization: Bearer $KEY" http://192.168.1.1:8091/api/devices
 ```
 
 端口和 API Key 可在「设置」页面修改；Key 留空时服务启动会自动生成。接口、
@@ -203,8 +203,8 @@ GitHub Actions 会在以下场景自动构建：
 
 | 目标 | SDK 镜像 | 产物 |
 | --- | --- | --- |
-| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.0-r1_all.ipk` |
-| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.0-r1.apk`（`noarch`） |
+| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.1-r1_all.ipk` |
+| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.1-r1.apk`（`noarch`） |
 
 由于软件包为 `all` 架构，任一架构构建出的包均可安装到所有目标设备。
 

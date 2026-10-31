@@ -21,18 +21,5 @@
 			"acl": [ "luci-app-ztc1control" ],
 			"fs": { "/etc/config/ztc1control": "file" }
 		}
-	},
-
-	"admin/control/ztc1control/settings": {
-		"title": "Settings",
-		"order": 10,
-		"action": {
-			"type": "view",
-			"path": "ztc1control/settings"
-		},
-		"depends": {
-			"acl": [ "luci-app-ztc1control" ],
-			"fs": { "/etc/config/ztc1control": "file" }
-		}
 	}
 }
