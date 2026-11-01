@@ -204,8 +204,8 @@ GitHub Actions 会在以下场景自动构建：
 
 | 目标 | SDK 镜像 | 产物 |
 | --- | --- | --- |
-| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.2-r2_all.ipk` |
-| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.2-r2.apk`（`noarch`） |
+| OpenWrt 24.10 | `x86_64-openwrt-24.10` | `luci-app-ztc1control_1.0.2-r3_all.ipk` |
+| OpenWrt 25.12 | `x86_64-openwrt-25.12` | `luci-app-ztc1control-1.0.2-r3.apk`（`noarch`） |
 
 由于软件包为 `all` 架构，任一架构构建出的包均可安装到所有目标设备。
 

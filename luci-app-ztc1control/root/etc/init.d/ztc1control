@@ -22,6 +22,41 @@ ztc1_ensure_api_key() {
 	uci -q commit ztc1control
 }
 
+ztc1_api_port_pid() {
+	local port="$1"
+
+	command -v netstat >/dev/null 2>&1 || return 1
+
+	netstat -ltnp 2>/dev/null | awk -v p=":$port" '$4 ~ p && $6 == "LISTEN" { split($7, a, "/"); print a[1]; exit }'
+}
+
+ztc1_api_wait_port_free() {
+	local port="$1" pid cmd i=0
+
+	command -v netstat >/dev/null 2>&1 || return 0
+
+	pid="$(ztc1_api_port_pid "$port")"
+
+	if [ -n "$pid" ] && [ -r "/proc/$pid/cmdline" ]; then
+		cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)"
+
+		case "$cmd" in
+		*"/usr/share/ztc1/www"*)
+			logger -t ztc1control "stopping stale API instance on port $port (pid $pid)"
+			kill "$pid" 2>/dev/null
+			;;
+		esac
+	fi
+
+	while [ "$i" -lt 5 ]; do
+		netstat -ltn 2>/dev/null | grep -q ":$port " || return 0
+		i=$((i + 1))
+		sleep 1
+	done
+
+	return 1
+}
+
 start_service() {
 	local broadcast dev
 
@@ -46,8 +81,8 @@ start_service() {
 
 	[ "$ZTC1_API_ENABLED" = "1" ] || return 0
 
-	if command -v netstat >/dev/null 2>&1 && netstat -ltn 2>/dev/null | grep -q ":$ZTC1_API_PORT "; then
-		logger -t ztc1control "API port $ZTC1_API_PORT is already in use, API not started"
+	if ! ztc1_api_wait_port_free "$ZTC1_API_PORT"; then
+		logger -t ztc1control "API port $ZTC1_API_PORT is still in use by another service, API not started"
 		return 0
 	fi
 

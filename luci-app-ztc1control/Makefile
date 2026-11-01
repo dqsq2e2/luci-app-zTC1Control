@@ -6,7 +6,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-ztc1control
 PKG_VERSION:=1.0.2
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 PKG_LICENSE:=MIT
 
 LUCI_TITLE:=LuCI support for zTC1 smart power strips
